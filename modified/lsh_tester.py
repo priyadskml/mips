@@ -25,7 +25,6 @@ def g_transformation(datas):
     ratio = float(U / max_norm)
     return ratio, max_norm, [[ratio * dx for dx in dd] for dd in datas]
 
-
 # normalization for each query
 def g_normalization(queries):
     U = 0.83
