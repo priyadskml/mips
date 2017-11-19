@@ -7,36 +7,14 @@ from operator import itemgetter
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
 
-# matrix inner product
-def dot(u, v):
-    # return sum(ux * vx for ux, vx in zip(u,v))
-    return np.dot(u, v)
-
 def g_ext_norm(vec, m):      #L2-ALSH
-    l2norm_square = dot(vec, vec)
+    l2norm_square = np.dot(vec, vec)
     return [l2norm_square**(i+1) for i in xrange(m)]
-
-def g_ext_half(m):			#L2-ALSH
-    return [0.5 for i in xrange(m)]
-
-def g_ext_zero(m):   #sign-ALSH
-    return [0 for i in xrange(m)]
-
-# [x] => [x;    ||x||**2; ||x||**4; ...; ||x||**(2*m);    1/2; ...; 1/2(m)]
-def g_index_extend(datas, m):
-    return [(dv + g_ext_norm(dv, m) + g_ext_half(m)) for dv in datas]
-
-
-# [x] => [x;    1/2; ...; 1/2(m);    ||x||**2; ||x||**4; ...; ||x||**(2*m)]
-def g_query_extend(queries, m):
-    return [(qv + g_ext_half(m) + g_ext_norm(qv, m)) for qv in queries]
-
 
 # get max norm for two-dimension list
 def g_max_norm(datas):
-    norm_list = [math.sqrt(dot(dd, dd)) for dd in datas]
+    norm_list = [math.sqrt(np.dot(dd, dd)) for dd in datas]
     return max(norm_list)
-
 
 # datas transformation. S(xi) = (U / M) * xi
 def g_transformation(datas):
@@ -54,7 +32,7 @@ def g_normalization(queries):
     #U = 0.75
     norm_queries = []
     for qv in queries:
-        norm = math.sqrt(dot(qv, qv))
+        norm = math.sqrt(np.dot(qv, qv))
         ratio = float(U / norm)
         norm_queries.append([ratio * qx for qx in qv])
     return norm_queries
@@ -87,7 +65,7 @@ class L2Lsh(Hash):
 
     def hash(self, vec):	# hash family
         # use str() as a naive way of forming a single value
-        return int((dot(vec, self.Data) + self.b) / self.r)
+        return int((np.dot(vec, self.Data) + self.b) / self.r)
 
     # Euclidean Distance
     @staticmethod
@@ -228,7 +206,7 @@ class L2AlshTester(LshTester):
         kdata = len(datas[0])
         qdata = len(queries[0])
         self.m = m
-        self.half_extend = g_ext_half(self.m)
+        self.half_extend = [0.5 for i in xrange(self.m)]
         # storage original datas & queries. used for validation
         self.origin_datas = datas
         self.origin_queries = queries
@@ -237,8 +215,8 @@ class L2AlshTester(LshTester):
         dratio, dmax_norm, self.norm_datas = g_transformation(self.origin_datas)
         self.norm_queries = g_normalization(self.origin_queries)
         # expand k dimension into k+2m dimension
-        self.ext_datas = g_index_extend(self.norm_datas, self.m)
-        self.ext_queries = g_query_extend(self.norm_queries, self.m)
+        self.ext_datas = [(dv + g_ext_norm(dv, self.m) + [0.5 for i in xrange(self.m)]) for dv in self.norm_datas]
+        self.ext_queries = [(qv + [0.5 for i in xrange(self.m)] + g_ext_norm(qv, self.m)) for qv in self.norm_queries]
         new_len = kdata + 2 * m
         LshTester.__init__(self, self.ext_datas, self.ext_queries, rand_range, num_neighbours)
 
@@ -246,12 +224,12 @@ class L2AlshTester(LshTester):
     def linear(self, q, metric, max_results):
         """ brute force search by linear scan """
         # print 'MipsLshTester linear:'
-        candidates = [(ix, dot(q, p)) for ix, p in enumerate(self.origin_datas)]
+        candidates = [(ix, np.dot(q, p)) for ix, p in enumerate(self.origin_datas)]
         temp = sorted(candidates, key=itemgetter(1), reverse=True)[:max_results]
         return temp
 
     def run(self, type, k_vec = [2], l_vec = [2]):
-        validate_metric, compute_metric = dot, L2Lsh.distance
+        validate_metric, compute_metric = np.dot, L2Lsh.distance
         exact_hits = [[ix for ix, dist in self.linear(q, validate_metric, self.num_neighbours)] for q in self.origin_queries]
 
         print '=============================='
