@@ -72,6 +72,80 @@ class L2Lsh(Hash):
         # print "L2Lsh.distance()"
         return sum((ux - vx)**2 for ux, vx in zip(u, v))**0.5
 
+class LshWrapper:
+    'LSH Wrapper'
+
+    # lsh_type: lsh hash func type: in 'l2
+    # r: random float data
+    # d: data vector size
+    # k: number of hash func for each hashtable. default 2
+    # L: number of hash tables for each hash type: default 2
+    def __init__(self, lsh_type, d, r = 1.0, k = 2, L = 2):
+        self.type = lsh_type
+        self.d, self.r, self.k, self.L, self.hash_tables = d, r, k, 0, []
+        self.resize(L)
+
+    def __get_hash_class__(self):
+        return L2Lsh
+        # return CosineLsh
+
+    def create_hash_table(self):
+        return L2Lsh(self.r, self.d)
+        # return CosineLsh(self.d)
+
+    def resize(self, L):
+        # shrink the number of hash tables to be used
+        if L < self.L:
+            self.hash_tables = self.hash_tables[:L]
+        else:
+            # initialise a new hash table for each hash function
+            hash_funcs = [[self.create_hash_table() for h in xrange(self.k)] for l in xrange(self.L, L)]
+            self.hash_tables.extend([(g, defaultdict(lambda:[])) for g in hash_funcs])
+        self.L = L
+
+    def hash(self, ht, data):
+        #  used for combine
+        return self.__get_hash_class__().combine([h.hash(data) for h in ht])
+
+    def index(self, datas):
+        # index the supplied datas
+        self.datas = datas
+        for ht, ct in self.hash_tables:
+            for ix, p in enumerate(self.datas):
+                ct[self.hash(ht, p)].append(ix)
+        # reset stats
+        self.tot_touched = 0
+        self.num_queries = 0
+
+    def query(self, q, metric, max_results = 1):
+        """
+        triple_l = 3 * self.L
+        if max_results > triple_l:
+            max_results = triple_l
+        elif
+        """
+        if 0 == max_results:
+            max_results = 1
+        # find the max_results closest indexed datas to q according to the supplied metric
+        candidates = set()
+        for ht, ct in self.hash_tables:
+            matches = ct.get(self.hash(ht, q), [])
+            candidates.update(matches)
+        # update stats
+        self.tot_touched += len(candidates)
+        self.num_queries += 1
+        # rerank candidates
+        candidates = [(ix, metric(q, self.datas[ix])) for ix in candidates]
+        candidates.sort(key=itemgetter(1))
+        return candidates[:max_results]
+
+    def get_avg_touched(self):
+        # mean number of candidates inspected per query
+        return self.tot_touched / self.num_queries
+
+    def distance(self, u, v):
+        return __get_hash_class__.distance(u, v)
+
 class LshTester():
     # datas: datas for build hash index
     # queries: query datas
@@ -96,14 +170,12 @@ class LshTester():
         # set distance func object
         if 'l2' == type:
             metric = L2Lsh.distance
-        elif 'cosine' == type:
-            metric = CosineLsh.distance
-        start = time.time()
-        exact_hits = [[ix for ix, dist in self.linear(q, metric, self.num_neighbours)] for q in self.queries]   
-        linear_time = time.time() - start
+
+        exact_hits = [[ix for ix, dist in self.linear(q, metric, self.num_neighbours)] for q in self.queries]   #exact_hits是距离q最近的那些点（这是真的，精准的）
+
         print '=============================='
         print type + ' TEST:'
-        # print 'L\tk\tacc\tData_Points_seen\tPrecision\tRecall\tTime'
+        print 'L\tk\tacc\ttouch'
 
         for k in k_vec:
             lsh = LshWrapper(type, self.d, self.rand_range, k, 0)
@@ -112,12 +184,12 @@ class LshTester():
                 lsh.resize(L)
                 lsh.index(self.datas)
 
-                correct, precision, recall , start = 0 , 0 , 0 , time.time()
+                correct = 0
                 for q, hits in zip(self.queries, exact_hits):
                     lsh_hits = [ix for ix, dist in lsh.query(q, metric, self.num_neighbours)]
                     correct += int(lsh_hits == hits)
-                precision = correct
-                print "{0}\t{1}\t{2}\t{3}\t\t{4}\t\t{5}\t{6}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas), precision, recall, time.time()-start)
+
+                print "{0}\t{1}\t{2}\t{3}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas))
 
 class L2AlshTester(LshTester):
     'L2-ALSH for MIPS Test parameters'
@@ -131,7 +203,7 @@ class L2AlshTester(LshTester):
         kdata = len(datas[0])
         qdata = len(queries[0])
         self.m = m
-        self.half_extend = g_ext_half(self.m)
+        self.half_extend = [0.5 for i in xrange(self.m)]
         # storage original datas & queries. used for validation
         self.origin_datas = datas
         self.origin_queries = queries
@@ -140,8 +212,8 @@ class L2AlshTester(LshTester):
         dratio, dmax_norm, self.norm_datas = g_transformation(self.origin_datas)
         self.norm_queries = g_normalization(self.origin_queries)
         # expand k dimension into k+2m dimension
-        self.ext_datas = g_index_extend(self.norm_datas, self.m)
-        self.ext_queries = g_query_extend(self.norm_queries, self.m)
+        self.ext_datas = [(dv + g_ext_norm(dv, self.m) + [0.5 for i in xrange(self.m)]) for dv in self.norm_datas]
+        self.ext_queries = [(qv + [0.5 for i in xrange(self.m)] + g_ext_norm(qv, self.m)) for qv in self.norm_queries]
         new_len = kdata + 2 * m
         LshTester.__init__(self, self.ext_datas, self.ext_queries, rand_range, num_neighbours)
 
@@ -149,26 +221,17 @@ class L2AlshTester(LshTester):
     def linear(self, q, metric, max_results):
         """ brute force search by linear scan """
         # print 'MipsLshTester linear:'
-        candidates = [(ix, metric(q, p)) for ix, p in enumerate(self.origin_datas)]
+        candidates = [(ix, np.dot(q, p)) for ix, p in enumerate(self.origin_datas)]
         temp = sorted(candidates, key=itemgetter(1), reverse=True)[:max_results]
-        # print "I am here"
         return temp
 
     def run(self, type, k_vec = [2], l_vec = [2]):
-        if 'l2' == type:
-            pass
-        else:
-            raise ValueError
-
-        validate_metric, compute_metric = dot, L2Lsh.distance
-        start = time.time()
-        exact_hits = [[ix for ix, dist in self.linear(q, compute_metric, self.num_neighbours)] for q in self.origin_queries]
+        validate_metric, compute_metric = np.dot, L2Lsh.distance
         exact_hits = [[ix for ix, dist in self.linear(q, validate_metric, self.num_neighbours)] for q in self.origin_queries]
-        linear_time = time.time() - start
 
         print '=============================='
         print 'L2AlshTester ' + type + ' TEST:'
-        print 'L\tk\tacc\tData_ratio\tPrecision\tRecall\ttime'
+        print 'L\tk\tacc\ttouch'
 
         # concatenating more hash functions increases selectivity
         for k in k_vec:
@@ -179,13 +242,13 @@ class L2AlshTester(LshTester):
                 lsh.resize(L)
                 lsh.index(self.ext_datas)
 
-                correct, precision, recall , start = 0 , 0 , 0 , time.time()
+                correct = 0
                 for q, hits in zip(self.ext_queries, exact_hits):
                     lsh_hits = [ix for ix, dist in lsh.query(q, compute_metric, self.num_neighbours)]
                     correct += int(lsh_hits == hits)
-                lash_time = time.time() - start
-                print "{0}\t{1}\t{2}\t{3}\t\t{4}\t\t{5}\t{6}\t{7}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas), precision, recall , lash_time, linear_time)
-    
+
+                print "{0}\t{1}\t{2}\t{3}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas))
+
     @staticmethod
     # type: l2 & cosine
     # mips: True for ALSH
