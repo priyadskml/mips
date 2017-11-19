@@ -8,6 +8,7 @@ import pandas as pd
 from operator import itemgetter
 from collections import defaultdict
 from abc import ABCMeta, abstractmethod
+import time
 
 def g_ext_norm(vec, m):      #L2-ALSH
     l2norm_square = np.dot(vec, vec)
@@ -229,11 +230,13 @@ class L2AlshTester(LshTester):
 
     def run(self, type, k_vec = [2], l_vec = [2]):
         validate_metric, compute_metric = np.dot, L2Lsh.distance
+        start = time.time()
+        exact_hits = [[ix for ix, dist in self.linear(q, compute_metric, self.num_neighbours)] for q in self.origin_queries]
         exact_hits = [[ix for ix, dist in self.linear(q, validate_metric, self.num_neighbours)] for q in self.origin_queries]
-
+        linear_time = time.time() - start
         print '=============================='
         print 'L2AlshTester ' + type + ' TEST:'
-        print 'L\tk\tacc\ttouch'
+        print 'L\tk\tAcc\tData_ratio\tALSH time\tLinear time'
 
         # concatenating more hash functions increases selectivity
         for k in k_vec:
@@ -245,11 +248,12 @@ class L2AlshTester(LshTester):
                 lsh.index(self.ext_datas)
 
                 correct = 0
+                start = time.time()
                 for q, hits in zip(self.ext_queries, exact_hits):
                     lsh_hits = [ix for ix, dist in lsh.query(q, compute_metric, self.num_neighbours)]
                     correct += int(lsh_hits == hits)
-
-                print "{0}\t{1}\t{2}\t{3}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas))
+                alsh_time = time.time() - start
+                print "{0}\t{1}\t{2}\t{3}\t\t{4}\t\t{5}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas), alsh_time, linear_time)
 
     @staticmethod
     def createTester(type, datas, queries, rand_num, num_neighbours):
@@ -327,11 +331,11 @@ if __name__ == "__main__":
     #     msk = np.random.rand(sR.shape[0],sR.shape[1]) < TRAIN_SIZE
     #     r = np.zeros(sR.shape)
 
-    # train_ratings = R_demeaned[:100]
-    # test_ratings = R_demeaned[100:120]
+    train_ratings = R_demeaned[:100]
+    test_ratings = R_demeaned[100:120]
     
-    train_ratings = R_demeaned[:int(0.8*len(R_demeaned))]
-    test_ratings = R_demeaned[int(0.8*len(R_demeaned)):]
+    # train_ratings = R_demeaned[:int(0.8*len(R_demeaned))]
+    # test_ratings = R_demeaned[int(0.8*len(R_demeaned)):]
     #mask itself is random
     #     train_ratings[msk] = r[msk]
     #     test_ratings[~msk] = r[~msk] # inverse of boolean mask
