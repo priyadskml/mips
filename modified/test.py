@@ -10,7 +10,7 @@ from scipy import sparse
 def lsh_test(datas, queries, rand_num, num_neighbours, mips = False):
 
     type = 'l2'
-    tester = LshTesterFactory.createTester(type, mips, datas, queries, rand_num, num_neighbours)
+    tester = L2AlshTester.createTester(type, mips, datas, queries, rand_num, num_neighbours)
     args = {
                 'type':      type,
                 'k_vec':     [1, 2, 4, 8],

@@ -287,7 +287,6 @@ class L2AlshTester(LshTester):
 
                 print "{0}\t{1}\t{2}\t{3}".format(L, k, float(correct) / self.q_num, float(lsh.get_avg_touched()) / len(self.datas))
 
-class LshTesterFactory():
     @staticmethod
     # type: l2 & cosine
     # mips: True for ALSH
