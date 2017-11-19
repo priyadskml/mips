@@ -1,2 +1,0 @@
-Finally, after running the code , we are able to separate the total number of rows and queries. 
-Later we run lsh_test.py with the given dataset to get the following results.
