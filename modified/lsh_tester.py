@@ -60,8 +60,6 @@ def g_normalization(queries):
     return norm_queries
 
 class Hash:
-    'hash base'
-
     __metaclass__ = ABCMeta
 
     def __init__(self):
@@ -79,15 +77,9 @@ class Hash:
 
     @staticmethod
     def combine(hashes):
-        # print "Hash.combine()"
         return str(hashes)
 
 class L2Lsh(Hash):
-    'L2 LSH'
-
-    # r: fixed size
-    # d: data length
-    # RandomData: random data vector
     def __init__(self, r, d):
         self.r, self.d = r, d
         self.b = random.uniform(0, self.r)      # 0 < b < r
@@ -259,11 +251,6 @@ class L2AlshTester(LshTester):
         return temp
 
     def run(self, type, k_vec = [2], l_vec = [2]):
-        if 'l2' == type:
-            pass
-        else:
-            raise ValueError
-
         validate_metric, compute_metric = dot, L2Lsh.distance
         exact_hits = [[ix for ix, dist in self.linear(q, validate_metric, self.num_neighbours)] for q in self.origin_queries]
 
@@ -290,8 +277,5 @@ class L2AlshTester(LshTester):
     @staticmethod
     # type: l2 & cosine
     # mips: True for ALSH
-    def createTester(type, mips, datas, queries, rand_num, num_neighbours):
-        if not mips:
-            return LshTester(datas, queries, rand_num, num_neighbours)
-        if type == 'l2':
-            return L2AlshTester(datas, queries, rand_num, num_neighbours)
+    def createTester(type, datas, queries, rand_num, num_neighbours):
+        return L2AlshTester(datas, queries, rand_num, num_neighbours)

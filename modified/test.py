@@ -10,7 +10,7 @@ from scipy import sparse
 def lsh_test(datas, queries, rand_num, num_neighbours, mips = False):
 
     type = 'l2'
-    tester = L2AlshTester.createTester(type, mips, datas, queries, rand_num, num_neighbours)
+    tester = L2AlshTester.createTester(type, datas, queries, rand_num, num_neighbours)
     args = {
                 'type':      type,
                 'k_vec':     [1, 2, 4, 8],
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # Run this only after downloading the small or large dataset and make sure the path is set
 
     # This is in case of small dataset
-    dataset = "datasets" + os.path.sep + "ml-latest-small"
+    dataset = "../datasets" + os.path.sep + "ml-latest-small"
 
     # This is in case of large dataset
     # dataset = "datasets"+os.path.sep+"ml-latest"
