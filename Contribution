@@ -1,11 +1,10 @@
 Shubham:
-Results code
 Presentaion1 completely
 Presentaion2 evaluation metrics slides
 
 Karthik:
-LSH code
 Comments in MIPS.ipynb
+plots in plots_paramas2.ipynb
 Presentaion1 completely
 
 Saurabh:
@@ -15,5 +14,7 @@ Presentaion1 completely
 
 Priya:
 Preprocessing Data in MIPS.ipynb (until SVD)
+Complete code in text.py, dataset.sh, dataset_small.sh, parameters.ipynb, plots_paramas2.ipynb, utils.py and ALSH_MIPS.py
+
 Presentaion2 completely except evaluation metrics slides
 Presentation1 only Related Works part
