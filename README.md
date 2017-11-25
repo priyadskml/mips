@@ -4,7 +4,7 @@ ALSH for solving mips sublinearly
 Link to the paper : http://papers.nips.cc/paper/5329-asymmetric-lsh-alsh-for-sublinear-time-maximum-inner-product-search-mips.pdf
 
 
-
+ALSH.mips is a stand alone code that has complete implementation of LSH and ALSH(helper file: utils.py)
 
 To execute the code on a small dataset :
 1. run ./dataset_small.sh
