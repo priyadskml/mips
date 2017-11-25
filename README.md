@@ -14,3 +14,16 @@ To execute the code on a small dataset :
 To execute the code on full dataset :
 1. run ./dataset.sh
 2. in ipynb files uncomment dataset = "datasets"+os.path.sep+"ml-latest" and comment dataset = "datasets"+os.path.sep+"ml-latest-small"
+
+
+Files: 
+1. plots_paramas2.ipynb has functions for determining best parameters for U, m, r and c 
+        It also has plots that show minimisations of rho functions.
+
+2. text.py has code to assemble netflix data from the zip file(s)
+
+3. utils.py has code for helper functions of L2LSH and ALSH
+
+4. ALSH_MIPS.ipynb has code that tests on L2LSH and ALSH.
+It also has precision recall curves
+
